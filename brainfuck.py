@@ -1,6 +1,26 @@
 import sys
 
 
+try:
+    import msvcrt
+    getch = msvcrt.getch
+
+except ImportError:
+    # refer to: https://github.com/pocmo/Python-Brainfuck/blob/master/getch.py
+    import termios
+    import tty
+
+    def getch():
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+
 class BrainFuck(object):
 
     def __init__(self):
@@ -37,8 +57,12 @@ class BrainFuck(object):
 
         if ch == '+':
             self._ram[self._ram_i] += 1
+            if self._ram[self._ram_i] > 0xFF:
+                self._ram[self._ram_i] = 0
         elif ch == '-':
             self._ram[self._ram_i] -= 1
+            if self._ram[self._ram_i] < 0:
+                self._ram[self._ram_i] = 0xFF
         elif ch == '>':
             self._move_ram_i(1)
         elif ch == '<':
@@ -52,7 +76,7 @@ class BrainFuck(object):
         elif ch == '.':
             sys.stdout.write(chr(self._ram[self._ram_i]))
         elif ch == ',':
-            sys.stdin.read(1)
+            self._ram[self._ram_i] = ord(getch())
 
         self._rom_i += 1
 
